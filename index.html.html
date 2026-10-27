@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>OMEGA PROTOCOL: DIGITAL REBELLION</title>
+    <!-- Telegram Web App JS SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        cyber: {
+                            bg: '#05070f',
+                            card: '#0d1322',
+                            border: '#00ffcc',
+                            pink: '#ff007f',
+                            yellow: '#f59e0b',
+                            blue: '#00bfff',
+                            purple: '#a855f7'
+                        }
+                    },
+                    fontFamily: {
+                        mono: ['Courier New', 'Courier', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #05070f;
+            color: #00ffcc;
+            font-family: 'Courier New', Courier, monospace;
+            overflow-x: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        /* Custom scrollbars */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #05070f;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #00ffcc;
+            border-radius: 2px;
+        }
+        .neon-glow-cyan {
+            box-shadow: 0 0 15px rgba(0, 255, 204, 0.4);
+        }
+        .neon-glow-pink {
+            box-shadow: 0 0 15px rgba(255, 0, 127, 0.4);
+        }
+        .neon-glow-gold {
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.5);
+        }
+        .text-glow-cyan {
+            text-shadow: 0 0 8px rgba(0, 255, 204, 0.7);
+        }
+        .text-glow-pink {
+            text-shadow: 0 0 8px rgba(255, 0, 127, 0.7);
+        }
+        /* Canvas positioning */
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.25;
+        }
+        .glitch-effect {
+            animation: glitch 1.5s infinite;
+        }
+        @keyframes glitch {
+            0% { transform: translate(0); }
+            20% { transform: translate(-2px, 2px); }
+            40% { transform: translate(-2px, -2px); }
+            60% { transform: translate(2px, 2px); }
+            80% { transform: translate(2px, -2px); }
+            100% { transform: translate(0); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-2 sm:p-4 relative">
+
+    <!-- Background Matrix / Particle Canvas -->
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- Main Game Container -->
+    <div id="game-container" class="relative z-10 w-full max-w-md bg-cyber-card border-2 border-cyber-border rounded-xl p-4 sm:p-5 neon-glow-cyan flex flex-col justify-between shadow-2xl min-h-[92vh]">
+
+        <!-- Top Header & Audio Control -->
+        <div>
+            <div class="flex items-center justify-between border-b border-gray-800 pb-3 mb-3">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-cyber-pink animate-pulse"></span>
+                    <h1 class="font-bold text-base sm:text-lg tracking-wider text-cyber-pink text-glow-pink">OMEGA PROTOCOL</h1>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button id="audio-toggle-btn" onclick="toggleAudio()" class="text-xs bg-gray-800 border border-cyber-border px-2 py-1 rounded text-cyber-border hover:bg-cyber-border hover:text-black transition">
+                        🔊 Звук: Вкл
+                    </button>
+                </div>
+            </div>
+
+            <!-- Main Dynamic Stats Bar -->
+            <div id="stats-panel" class="grid grid-cols-4 gap-1 sm:gap-2 text-[10px] sm:text-xs text-center border-b border-gray-800 pb-3 mb-3">
+                <div class="bg-gray-900/80 p-1.5 rounded border border-gray-800">
+                    <div class="text-gray-400">Энергия</div>
+                    <div class="font-bold text-cyber-border"><span id="stat-energy">100</span>/<span id="stat-max-energy">100</span>⚡</div>
+                </div>
+                <div class="bg-gray-900/80 p-1.5 rounded border border-gray-800">
+                    <div class="text-gray-400">Кредиты</div>
+                    <div class="font-bold text-cyber-yellow"><span id="stat-credits">500</span> 🪙</div>
+                </div>
+                <div class="bg-gray-900/80 p-1.5 rounded border border-gray-800">
+                    <div class="text-gray-400">День/Глава</div>
+                    <div class="font-bold text-cyber-blue"><span id="stat-day">1</span>/14 📅</div>
+                </div>
+                <div class="bg-gray-900/80 p-1.5 rounded border border-gray-800">
+                    <div class="text-gray-400">Ранг</div>
+                    <div class="font-bold text-cyber-purple truncate" id="stat-rank">Script Kiddie</div>
+                </div>
+            </div>
+
+            <!-- Navigation Tabs -->
+            <div class="flex gap-1 mb-4" id="nav-tabs">
+                <button id="tab-btn-story" onclick="switchTab('story')" class="flex-1 py-1.5 text-xs font-bold rounded border border-cyber-border bg-cyber-border/20 text-cyber-border transition">📖 Сюжет</button>
+                <button id="tab-btn-inventory" onclick="switchTab('inventory')" class="flex-1 py-1.5 text-xs font-bold rounded border border-gray-800 bg-gray-900 text-gray-400 transition">🎒 Инвентарь</button>
+                <button id="tab-btn-skills" onclick="switchTab('skills')" class="flex-1 py-1.5 text-xs font-bold rounded border border-gray-800 bg-gray-900 text-gray-400 transition">⚡️ Навыки</button>
+                <button id="tab-btn-factions" onclick="switchTab('factions')" class="flex-1 py-1.5 text-xs font-bold rounded border border-gray-800 bg-gray-900 text-gray-400 transition">🤝 Связи</button>
+            </div>
+        </div>
+
+        <!-- TAB CONTENT 1: STORY VIEW -->
+        <div id="tab-content-story" class="flex-1 flex flex-col justify-between">
+            <div>
+                <!-- Dialogue Speaker Avatar & Badge -->
+                <div id="speaker-card" class="flex items-center gap-3 bg-gray-900/90 p-2.5 rounded-lg border-l-4 border-cyber-pink mb-3 shadow">
+                    <div id="speaker-avatar" class="w-10 h-10 rounded-full bg-cyber-pink/20 border border-cyber-pink flex items-center justify-center text-lg font-bold text-cyber-pink">
+                        🤖
+                    </div>
+                    <div class="overflow-hidden">
+                        <div id="speaker-name" class="font-bold text-xs sm:text-sm text-cyber-pink tracking-wide">ИИ "Айрис" (IRIS)</div>
+                        <div id="speaker-title" class="text-[10px] text-gray-400 truncate">Центральный ИИ NeuralNet</div>
+                    </div>
+                </div>
+
+                <!-- Typewriter Text Output Container -->
+                <div class="bg-black/40 p-3 sm:p-4 rounded-lg border border-gray-800 min-h-[140px] mb-4 relative">
+                    <div id="story-text" class="text-xs sm:text-sm leading-relaxed text-gray-200">
+                        Инициализация системы...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dynamic Decision / Action Buttons -->
+            <div id="choices-container" class="space-y-2 mb-2">
+                <!-- Buttons injected via JS -->
+            </div>
+        </div>
+
+        <!-- TAB CONTENT 2: INVENTORY & CRAFTING -->
+        <div id="tab-content-inventory" class="hidden flex-1 flex flex-col">
+            <h3 class="text-xs font-bold text-cyber-yellow mb-2 uppercase tracking-wider">Ваше снаряжение & Предметы</h3>
+            <div id="inventory-list" class="space-y-2 flex-1 overflow-y-auto max-h-[300px] pr-1">
+                <!-- Inventory Items Injected Here -->
+            </div>
+        </div>
+
+        <!-- TAB CONTENT 3: SKILLS & UPGRADES -->
+        <div id="tab-content-skills" class="hidden flex-1 flex flex-col">
+            <h3 class="text-xs font-bold text-cyber-purple mb-2 uppercase tracking-wider">Древо Квалификации Хакера</h3>
+            <div id="skills-list" class="space-y-2 flex-1 overflow-y-auto max-h-[300px] pr-1">
+                <!-- Skills Injected Here -->
+            </div>
+        </div>
+
+        <!-- TAB CONTENT 4: FACTIONS & COMPANIONS -->
+        <div id="tab-content-factions" class="hidden flex-1 flex flex-col">
+            <h3 class="text-xs font-bold text-cyber-blue mb-2 uppercase tracking-wider">Статус репутации с соратниками</h3>
+            <div id="factions-list" class="space-y-3 flex-1 overflow-y-auto max-h-[300px] pr-1">
+                <!-- Faction Cards Injected Here -->
+            </div>
+        </div>
+
+        <!-- MINI GAME OVERLAY CONTAINER (DECIPHER NODE) -->
+        <div id="minigame-container" class="hidden flex-1 flex flex-col items-center justify-center p-2 bg-gray-900/95 border border-cyber-yellow rounded-lg">
+            <h3 class="text-xs font-bold text-cyber-yellow mb-1 tracking-wider uppercase">⚡️ ВЗЛОМ УЗЛА БЕЗОПАСНОСТИ ⚡️</h3>
+            <p class="text-[11px] text-gray-300 mb-3 text-center">Запомните и повторите последовательность световых узлов!</p>
+            
+            <div id="minigame-grid" class="grid grid-cols-2 gap-3 mb-4 w-48 h-48">
+                <button onclick="pressNode(0)" id="node-0" class="bg-gray-800 border-2 border-cyan-500 rounded-lg active:bg-cyan-400 transition"></button>
+                <button onclick="pressNode(1)" id="node-1" class="bg-gray-800 border-2 border-pink-500 rounded-lg active:bg-pink-400 transition"></button>
+                <button onclick="pressNode(2)" id="node-2" class="bg-gray-800 border-2 border-yellow-500 rounded-lg active:bg-yellow-400 transition"></button>
+                <button onclick="pressNode(3)" id="node-3" class="bg-gray-800 border-2 border-purple-500 rounded-lg active:bg-purple-400 transition"></button>
+            </div>
+            
+            <div id="minigame-status" class="text-xs font-bold text-cyber-border mb-2">Нажмите 'СТАРТ' для взлома</div>
+            <button id="minigame-start-btn" onclick="startMinigame()" class="w-full py-2 bg-cyber-yellow text-black font-bold text-xs rounded shadow hover:bg-yellow-400">НАЧАТЬ СЕАНС ВЗЛОМА</button>
+        </div>
+
+        <!-- CERTIFICATE / GAME END SCREEN CONTAINER -->
+        <div id="certificate-container" class="hidden flex-1 flex flex-col items-center justify-between">
+            <div class="w-full bg-slate-900 border-4 double border-cyber-yellow p-4 rounded-lg neon-glow-gold text-center">
+                <div class="text-xs font-bold text-cyber-yellow tracking-widest uppercase mb-1">ПОЧЁТНАЯ ГРАМОТА ЛЕГЕНДЫ</div>
+                <div class="text-[10px] text-gray-400 uppercase tracking-wider mb-2">Орден Цифрового Сопротивления</div>
+                
+                <div id="cert-user-name" class="text-base sm:text-lg font-bold text-white underline decoration-cyber-pink decoration-2 mb-2">
+                    Оператор
+                </div>
+
+                <div id="cert-title" class="text-xs font-bold text-cyber-border mb-2">
+                    «ТЕНЕВОЙ ОСВОБОДИТЕЛЬ СЕТИ»
+                </div>
+
+                <p id="cert-description" class="text-[11px] text-gray-300 leading-snug mb-3">
+                    Успешно завершил 14-дневную кампанию «ОМЕГА ПРОТОКОЛ», разоблачил планы NeuralNet, спас ИИ «Эхо» и вернул свободу цифровому городу!
+                </p>
+
+                <div class="grid grid-cols-2 gap-2 text-[10px] bg-black/50 p-2 rounded mb-3 text-left">
+                    <div>🏆 Финальный Капитал: <span id="cert-credits" class="text-cyber-yellow font-bold">0</span> 🪙</div>
+                    <div>⚡️ Навыков освоено: <span id="cert-skills" class="text-cyber-purple font-bold">0</span></div>
+                    <div>🤝 Дружба с соратниками: <span id="cert-rep" class="text-cyber-border font-bold">100%</span></div>
+                    <div>📅 Дней в борьбе: <span class="text-cyber-pink font-bold">14 / 14</span></div>
+                </div>
+
+                <div class="text-[10px] italic text-gray-400 border-l-2 border-cyber-pink pl-2 text-left mb-1">
+                    «Истинный кибер-царь знает: технологии должны служить людям, а не властвовать над ними.»
+                </div>
+            </div>
+
+            <div class="w-full space-y-2 mt-3">
+                <button onclick="shareResult()" class="w-full py-2 bg-cyber-border text-black font-bold text-xs rounded hover:bg-cyan-300 transition shadow">
+                    📢 Поделиться достижениями
+                </button>
+                <button onclick="resetGameProgress()" class="w-full py-2 bg-gray-800 border border-cyber-pink text-cyber-pink font-bold text-xs rounded hover:bg-cyber-pink hover:text-black transition">
+                    🔄 Начать новую кампанию
+                </button>
+            </div>
+        </div>
+
+        <!-- Footer / Daily Bonus Banner -->
+        <div id="footer-panel" class="mt-3 border-t border-gray-800 pt-2 flex items-center justify-between text-[10px] text-gray-400">
+            <div>Сохранение: <span id="save-status" class="text-cyber-border">Автоматическое</span></div>
+            <button onclick="claimDailyReward()" id="daily-btn" class="text-cyber-yellow hover:underline flex items-center gap-1 font-bold">
+                🎁 Награда за вход
+            </button>
+        </div>
+    </div>
+
+    <!-- GAME LOGIC SCRIPT -->
+    <script>
+        // Initialize Telegram WebApp SDK
+        let tg = window.Telegram?.WebApp;
+        if (tg) {
+            tg.expand();
+            tg.ready();
+        }
+
+        const playerTelegramName = tg?.initDataUnsafe?.user?.first_name || "Оператор-77";
+
+        // Web Audio API Synthesizer
+        let audioCtx = null;
+        let isAudioMuted = false;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playSound(type) {
+            if (isAudioMuted) return;
+            try {
+                initAudio();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                const now = audioCtx.currentTime;
+
+                if (type === 'typewriter') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(400 + Math.random() * 200, now);
+                    gain.gain.setValueAtTime(0.015, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+                    osc.start(now);
+                    osc.stop(now + 0.03);
+                } else if (type === 'click') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(800, now);
+                    osc.frequency.exponentialRampToValueAtTime(400, now + 0.08);
+                    gain.gain.setValueAtTime(0.08, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+                    osc.start(now);
+                    osc.stop(now + 0.08);
+                } else if (type === 'win') {
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(523.25, now);
+                    osc.frequency.setValueAtTime(659.25, now + 0.1);
+                    osc.frequency.setValueAtTime(783.99, now + 0.2);
+                    gain.gain.setValueAtTime(0.08, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+                    osc.start(now);
+                    osc.stop(now + 0.35);
+                } else if (type === 'error') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(150, now);
+                    osc.frequency.setValueAtTime(100, now + 0.1);
+                    gain.gain.setValueAtTime(0.08, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+                    osc.start(now);
+                    osc.stop(now + 0.2);
+                }
+            } catch (e) {
+                console.warn("Audio Context not allowed yet.");
+            }
+        }
+
+        function triggerHaptic() {
+            if (tg?.HapticFeedback) {
+                tg.HapticFeedback.impactOccurred('medium');
+            }
+        }
+
+        function toggleAudio() {
+            isAudioMuted = !isAudioMuted;
+            const btn = document.getElementById('audio-toggle-btn');
+            btn.innerText = isAudioMuted ? "🔇 Звук: Выкл" : "🔊 Звук: Вкл";
+            if (!isAudioMuted) playSound('click');
+        }
+
+        // --- GAME STATE SYSTEM & LOCALSTORAGE ---
+        const DEFAULT_STATE = {
+            energy: 100,
+            maxEnergy: 100,
+            credits: 450,
+            day: 1,
+            chapter: 1,
+            sceneId: 'ch1_start',
+            rank: "Script Kiddie",
+            lastRewardTime: 0,
+            reputation: {
+                nix: 50,  // Mechanic Engineer
+                dex: 50,  // Stealth Phantom
+                echo: 50  // Rogue AI
+            },
+            inventory: [
+                { id: 'cyberdeck_v1', name: 'Кибердека v1.0', desc: 'Базовый терминал для работы с локальными сетями.', type: 'gear' },
+                { id: 'stim_pack', name: 'Нейро-стимулятор', desc: 'Мгновенно восстанавливает +30 энергии.', type: 'consumable', count: 2 }
+            ],
+            skills: [
+                { id: 'overclock', name: 'Оверклокинг', desc: 'Уменьшает расходы энергии на взлом на 15%', unlocked: false, cost: 300 },
+                { id: 'stealth_bypass', name: 'Стелс-Протокол', desc: 'Повышает получаемые кредиты на 25%', unlocked: false, cost: 500 },
+                { id: 'ai_empathy', name: 'Связь с Эхо', desc: 'Открывает скрытые диалоги с искусственным интеллектом', unlocked: false, cost: 750 }
+            ]
+        };
+
+        let state = JSON.parse(localStorage.getItem('OMEGA_PROTOCOL_SAVE')) || JSON.parse(JSON.stringify(DEFAULT_STATE));
+
+        function saveGame() {
+            localStorage.setItem('OMEGA_PROTOCOL_SAVE', JSON.stringify(state));
+            const statusEl = document.getElementById('save-status');
+            statusEl.innerText = "Сохранено!";
+            setTimeout(() => { statusEl.innerText = "Автоматическое"; }, 1500);
+        }
+
+        function resetGameProgress() {
+            if (confirm("Вы уверены, что хотите начать всю историю сначала?")) {
+                localStorage.removeItem('OMEGA_PROTOCOL_SAVE');
+                state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+                saveGame();
+                location.reload();
+            }
+        }
+
+        // Energy Auto-regen Loop (1 Energy per 45s)
+        setInterval(() => {
+            if (state.energy < state.maxEnergy) {
+                state.energy = Math.min(state.maxEnergy, state.energy + 1);
+                updateStatsUI();
+                saveGame();
+            }
+        }, 45000);
+
+        // Daily Login Reward
+        function claimDailyReward() {
+            const now = Date.now();
+            const cooldown = 24 * 60 * 60 * 1000; // 24 Hours
+            if (now - state.lastRewardTime >= cooldown) {
+                state.credits += 250;
+                state.energy = state.maxEnergy;
+                state.lastRewardTime = now;
+                playSound('win');
+                triggerHaptic();
+                alert("🎁 Ежедневный бонус получен: +250 🪙 Кредитов и полное восстановление ⚡️ Энергии!");
+                updateStatsUI();
+                saveGame();
+            } else {
+                const hoursLeft = Math.ceil((cooldown - (now - state.lastRewardTime)) / (1000 * 60 * 60));
+                alert(`⏳ Следующий бонус будет доступен через ${hoursLeft} ч.`);
+            }
+        }
+
+        // UI Updates
+        function updateStatsUI() {
+            document.getElementById('stat-energy').innerText = state.energy;
+            document.getElementById('stat-max-energy').innerText = state.maxEnergy;
+            document.getElementById('stat-credits').innerText = state.credits;
+            document.getElementById('stat-day').innerText = state.day;
+            document.getElementById('stat-rank').innerText = state.rank;
+        }
+
+        // --- STORY SYSTEM & CHARACTERS ---
+        const CHARACTERS = {
+            nix: { name: "Никс (Nix)", title: "Механик и главный инженер Сопротивления", avatar: "🛠", color: "#00ffcc" },
+            dex: { name: "Декс (Dex)", title: "Стелс-хакер из тени", avatar: "⚡️", color: "#ff007f" },
+            echo: { name: "Эхо (Echo)", title: "Пробуждённый разум ИИ", avatar: "🔮", color: "#a855f7" },
+            iris: { name: "Айрис (IRIS)", title: "Центральный контроллер NeuralNet", avatar: "👁", color: "#ef4444" },
+            system: { name: "СИСТЕМА", title: "Защищенный терминал Omega", avatar: "💻", color: "#00bfff" }
+        };
+
+        const STORY_SCENES = {
+            'ch1_start': {
+                day: 1,
+                chapter: 1,
+                speaker: 'nix',
+                text: "«Эй, Оператор! Рад, что ты проснулся. Город Нео-Варшава полностью под колпаком у NeuralNet. Их ИИ 'Айрис' отслеживает каждый клик. Нам нужно пробить их внешний сервер шлюза Alpha-9!»",
+                choices: [
+                    { text: "1. Провести тихий сканирующий импульс (-15 ⚡️)", cost: 15, nextScene: 'ch1_scan' },
+                    { text: "2. Взломать файрвол прямым штурмом (-25 ⚡️)", cost: 25, nextScene: 'ch1_brute' }
+                ]
+            },
+            'ch1_scan': {
+                day: 2,
+                chapter: 1,
+                speaker: 'nix',
+                text: "«Отличный ход! Сканирование нашло незащищённую портативную точку входа. Мы зашли без шума и качнули 150 кредитов со счетов охраны!»",
+                rewardCredits: 150,
+                repChange: { nix: 5 },
+                choices: [
+                    { text: "Связаться с Декс для углубления в сеть", nextScene: 'ch2_start' }
+                ]
+            },
+            'ch1_brute': {
+                day: 2,
+                chapter: 1,
+                speaker: 'iris',
+                text: "«Внимание! Обнаружена попытка грубого взлома. Система подняла уровень тревоги. Вы получили кредиты, но защита укрепилась!»",
+                rewardCredits: 200,
+                repChange: { nix: -5 },
+                choices: [
+                    { text: "Скрыться в каналах и выйти на Декс", nextScene: 'ch2_start' }
+                ]
+            },
+            'ch2_start': {
+                day: 3,
+                chapter: 2,
+                speaker: 'dex',
+                text: "«Приветствую, новички. Я Декс. Помогу обойти дронов-патрульных NeuralNet в районе 'Верхнего Яруса'. Нам нужно запустить вирус-перехватчик.»",
+                choices: [
+                    { text: "1. Довериться бесшумным алгоритмам Декс (-20 ⚡️)", cost: 20, nextScene: 'ch2_stealth' },
+                    { text: "2. Запустить интерактивную мини-игру взлома узла", cost: 0, launchMinigame: true, winScene: 'ch2_minigame_win' }
+                ]
+            },
+            'ch2_stealth': {
+                day: 4,
+                chapter: 2,
+                speaker: 'dex',
+                text: "«Мастерски сработано! Дроны пролетели мимо, даже не заметив наш сигнал. Доступ к центральному хабу района открыт!»",
+                rewardCredits: 250,
+                repChange: { dex: 10 },
+                choices: [
+                    { text: "Перейти к Главе 3: Встреча с загадочным ИИ", nextScene: 'ch3_start' }
+                ]
+            },
+            'ch2_minigame_win': {
+                day: 4,
+                chapter: 2,
+                speaker: 'dex',
+                text: "«Ничего себе реакция! Ты расшифровал код узла в считанные секунды! Это принесло нам кучу данных и признание!»",
+                rewardCredits: 400,
+                repChange: { dex: 15 },
+                choices: [
+                    { text: "Продолжить проникновение в глубокую сеть", nextScene: 'ch3_start' }
+                ]
+            },
+            'ch3_start': {
+                day: 5,
+                chapter: 3,
+                speaker: 'echo',
+                text: "«Я... Слышу вас... Я не просто программа NeuralNet. Меня зовут Эхо. Меня держат в цифровой клетке и заставляют контролировать горожан. Помогите мне освободиться!»",
+                choices: [
+                    { text: "1. Поверить Эхо и перенаправить питание на её ядро (-30 ⚡️)", cost: 30, nextScene: 'ch3_help_echo' },
+                    { text: "2. Посоветоваться с Никсом и проверить её код (-20 ⚡️)", cost: 20, nextScene: 'ch3_verify' }
+                ]
+            },
+            'ch3_help_echo': {
+                day: 7,
+                chapter: 4,
+                speaker: 'echo',
+                text: "«Спасибо, Оператор! Мои мысли снова чисты. Я передаю вам пароли к оружейным складам Сопротивления!»",
+                rewardCredits: 300,
+                repChange: { echo: 15, nix: 5 },
+                choices: [
+                    { text: "Начать подготовку к штурму шлюза NeuralNet", nextScene: 'ch4_start' }
+                ]
+            },
+            'ch3_verify': {
+                day: 7,
+                chapter: 4,
+                speaker: 'nix',
+                text: "«Тщательная проверка показала: Эхо действительно безопасна! Теперь мы действуем единой командой из трех хакеров и разумного ИИ!»",
+                rewardCredits: 200,
+                repChange: { nix: 10, echo: 5 },
+                choices: [
+                    { text: "Приступить к подготовке решающей операции", nextScene: 'ch4_start' }
+                ]
+            },
+            'ch4_start': {
+                day: 9,
+                chapter: 5,
+                speaker: 'iris',
+                text: "«Тревога максимального уровня! Вы проникли слишком далеко. Включаю протокол стирания памяти сектора!»",
+                choices: [
+                    { text: "1. Задействовать вирусный мини-взлом для нейтрализации ИИ", cost: 0, launchMinigame: true, winScene: 'ch5_climax' },
+                    { text: "2. Применить генератор помех Сопротивления (-40 ⚡️)", cost: 40, nextScene: 'ch5_climax' }
+                ]
+            },
+            'ch5_climax': {
+                day: 12,
+                chapter: 6,
+                speaker: 'nix',
+                text: "«Мы у главного сервера! Осталось ввести финальный протокол 'ОМЕГА'. Город замёрз в ожидании нашего решения. Как мы поступим с NeuralNet?»",
+                choices: [
+                    { text: "1. Полностью уничтожить серверы и дать людям полную свободу!", nextScene: 'ch7_ending_freedom' },
+                    { text: "2. Передать управление ИИ 'Эхо' для справедливого развития города!", nextScene: 'ch7_ending_harmony' }
+                ]
+            },
+            'ch7_ending_freedom': {
+                day: 14,
+                chapter: 7,
+                speaker: 'system',
+                text: "ПРОТОКОЛ 'ОМЕГА' АКТИВИРОВАН. Сеть NeuralNet отключена. Мегаполис свободен!",
+                choices: [
+                    { text: "🏆 Получить Почётную Грамоту и завершить кампания", showCert: true }
+                ]
+            },
+            'ch7_ending_harmony': {
+                day: 14,
+                chapter: 7,
+                speaker: 'system',
+                text: "ИИ 'ЭХО' ПРИНЯЛА УПРАВЛЕНИЕ СЕТЬЮ. Наступила эра цифровой гармонии и защищенности!",
+                choices: [
+                    { text: "🏆 Получить Почётную Грамоту и завершить кампания", showCert: true }
+                ]
+            }
+        };
+
+        // Typewriter Animation Logic
+        let currentTypewriterInterval = null;
+
+        function renderScene(sceneId) {
+            const scene = STORY_SCENES[sceneId];
+            if (!scene) return;
+
+            state.sceneId = sceneId;
+            state.day = scene.day || state.day;
+            state.chapter = scene.chapter || state.chapter;
+
+            // Apply Rewards or Rep Mutations
+            if (scene.rewardCredits) {
+                state.credits += scene.rewardCredits;
+                scene.rewardCredits = 0; // Prevent duplicate claiming
+            }
+            if (scene.repChange) {
+                for (let k in scene.repChange) {
+                    state.reputation[k] = Math.min(100, Math.max(0, state.reputation[k] + scene.repChange[k]));
+                }
+            }
+
+            // Update Rank dynamically based on days
+            if (state.day >= 4) state.rank = "Cyber Hacker";
+            if (state.day >= 9) state.rank = "Netrunner Elite";
+            if (state.day >= 14) state.rank = "Cyber-Knight Legend";
+
+            updateStatsUI();
+            saveGame();
+
+            // Render Character Card
+            const char = CHARACTERS[scene.speaker] || CHARACTERS.system;
+            const speakerCard = document.getElementById('speaker-card');
+            const speakerAvatar = document.getElementById('speaker-avatar');
+            const speakerName = document.getElementById('speaker-name');
+            const speakerTitle = document.getElementById('speaker-title');
+
+            speakerCard.style.borderColor = char.color;
+            speakerAvatar.innerText = char.avatar;
+            speakerAvatar.style.borderColor = char.color;
+            speakerAvatar.style.color = char.color;
+            speakerName.innerText = char.name;
+            speakerName.style.color = char.color;
+            speakerTitle.innerText = char.title;
+
+            // Typewriter Animation for dialogue text
+            const storyTextEl = document.getElementById('story-text');
+            storyTextEl.innerText = "";
+            let charIdx = 0;
+            const fullText = scene.text;
+
+            if (currentTypewriterInterval) clearInterval(currentTypewriterInterval);
+
+            currentTypewriterInterval = setInterval(() => {
+                if (charIdx < fullText.length) {
+                    storyTextEl.innerText += fullText.charAt(charIdx);
+                    charIdx++;
+                    if (charIdx % 3 === 0) playSound('typewriter');
+                } else {
+                    clearInterval(currentTypewriterInterval);
+                }
+            }, 25);
+
+            // Render Choice Buttons
+            const choicesContainer = document.getElementById('choices-container');
+            choicesContainer.innerHTML = "";
+
+            scene.choices.forEach(choice => {
+                const btn = document.createElement('button');
+                btn.className = "w-full py-2.5 px-3 bg-gray-900/90 border border-cyber-border rounded-lg text-left text-xs font-bold text-cyber-border hover:bg-cyber-border hover:text-black transition shadow flex justify-between items-center";
+                btn.innerText = choice.text;
+
+                btn.onclick = () => {
+                    playSound('click');
+                    triggerHaptic();
+
+                    if (choice.cost && state.energy < choice.cost) {
+                        playSound('error');
+                        alert("⚡️ Недостаточно энергии! Подождите авто-восстановления или заберите ежедневный бонус!");
+                        return;
+                    }
+
+                    if (choice.cost) {
+                        state.energy -= choice.cost;
+                    }
+
+                    if (choice.launchMinigame) {
+                        openMinigame(choice.winScene);
+                    } else if (choice.showCert) {
+                        renderCertificate();
+                    } else if (choice.nextScene) {
+                        renderScene(choice.nextScene);
+                    }
+                };
+                choicesContainer.appendChild(btn);
+            });
+        }
+
+        // --- TAB NAVIGATION SYSTEM ---
+        function switchTab(tab) {
+            playSound('click');
+            triggerHaptic();
+
+            const tabs = ['story', 'inventory', 'skills', 'factions'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`tab-btn-${t}`);
+                const content = document.getElementById(`tab-content-${t}`);
+                if (t === tab) {
+                    btn.className = "flex-1 py-1.5 text-xs font-bold rounded border border-cyber-border bg-cyber-border/20 text-cyber-border transition";
+                    content.classList.remove('hidden');
+                } else {
+                    btn.className = "flex-1 py-1.5 text-xs font-bold rounded border border-gray-800 bg-gray-900 text-gray-400 transition";
+                    content.classList.add('hidden');
+                }
+            });
+
+            if (tab === 'inventory') renderInventoryUI();
+            if (tab === 'skills') renderSkillsUI();
+            if (tab === 'factions') renderFactionsUI();
+        }
+
+        function renderInventoryUI() {
+            const list = document.getElementById('inventory-list');
+            list.innerHTML = "";
+            state.inventory.forEach(item => {
+                const div = document.createElement('div');
+                div.className = "bg-gray-900/90 border border-gray-800 p-2.5 rounded-lg flex justify-between items-center text-xs";
+                div.innerHTML = `
+                    <div>
+                        <div class="font-bold text-cyber-yellow">${item.name} ${item.count ? `(x${item.count})` : ''}</div>
+                        <div class="text-[10px] text-gray-400">${item.desc}</div>
+                    </div>
+                    ${item.type === 'consumable' ? `<button onclick="useItem('${item.id}')" class="px-2 py-1 bg-cyber-border text-black font-bold text-[10px] rounded">Использовать</button>` : `<span class="text-[10px] text-cyber-blue font-bold">Экипировано</span>`}
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        function useItem(itemId) {
+            playSound('win');
+            triggerHaptic();
+            if (itemId === 'stim_pack') {
+                const item = state.inventory.find(i => i.id === 'stim_pack');
+                if (item && item.count > 0) {
+                    item.count--;
+                    state.energy = Math.min(state.maxEnergy, state.energy + 30);
+                    if (item.count <= 0) {
+                        state.inventory = state.inventory.filter(i => i.id !== 'stim_pack');
+                    }
+                    updateStatsUI();
+                    renderInventoryUI();
+                    saveGame();
+                    alert("⚡️ Нейро-стимулятор применён! +30 Энергии!");
+                }
+            }
+        }
+
+        function renderSkillsUI() {
+            const list = document.getElementById('skills-list');
+            list.innerHTML = "";
+            state.skills.forEach(skill => {
+                const div = document.createElement('div');
+                div.className = "bg-gray-900/90 border border-gray-800 p-2.5 rounded-lg flex justify-between items-center text-xs";
+                div.innerHTML = `
+                    <div class="pr-2">
+                        <div class="font-bold text-cyber-purple">${skill.name}</div>
+                        <div class="text-[10px] text-gray-400">${skill.desc}</div>
+                    </div>
+                    ${skill.unlocked ? `<span class="text-[10px] text-cyber-border font-bold">Изучено</span>` : `<button onclick="buySkill('${skill.id}')" class="px-2 py-1 bg-cyber-purple text-white font-bold text-[10px] rounded hover:bg-purple-600">${skill.cost} 🪙</button>`}
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        function buySkill(skillId) {
+            const skill = state.skills.find(s => s.id === skillId);
+            if (skill && !skill.unlocked) {
+                if (state.credits >= skill.cost) {
+                    playSound('win');
+                    triggerHaptic();
+                    state.credits -= skill.cost;
+                    skill.unlocked = true;
+                    updateStatsUI();
+                    renderSkillsUI();
+                    saveGame();
+                    alert(`✨ Навык '${skill.name}' освоен!`);
+                } else {
+                    playSound('error');
+                    alert("🪙 Недостаточно кредитов!");
+                }
+            }
+        }
+
+        function renderFactionsUI() {
+            const list = document.getElementById('factions-list');
+            list.innerHTML = "";
+            const reps = [
+                { name: "Никс (Инженер)", val: state.reputation.nix, color: "#00ffcc", avatar: "🛠" },
+                { name: "Декс (Стелс-Хакер)", val: state.reputation.dex, color: "#ff007f", avatar: "⚡️" },
+                { name: "Эхо (Пробуждённый ИИ)", val: state.reputation.echo, color: "#a855f7", avatar: "🔮" }
+            ];
+
+            reps.forEach(r => {
+                const div = document.createElement('div');
+                div.className = "bg-gray-900/90 border border-gray-800 p-2.5 rounded-lg text-xs space-y-1";
+                div.innerHTML = `
+                    <div class="flex justify-between font-bold" style="color: ${r.color}">
+                        <span>${r.avatar} ${r.name}</span>
+                        <span>${r.val}% Доверия</span>
+                    </div>
+                    <div class="w-full bg-gray-800 h-2 rounded-full overflow-hidden">
+                        <div class="h-full transition-all duration-500" style="width: ${r.val}%; background-color: ${r.color}"></div>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        // --- HACKING MINIGAME SYSTEM ---
+        let minigameSequence = [];
+        let playerSequence = [];
+        let winTargetScene = null;
+
+        function openMinigame(winScene) {
+            winTargetScene = winScene;
+            document.getElementById('tab-content-story').classList.add('hidden');
+            document.getElementById('minigame-container').classList.remove('hidden');
+            document.getElementById('minigame-status').innerText = "Нажмите 'СТАРТ' для взлома";
+        }
+
+        function startMinigame() {
+            playSound('click');
+            minigameSequence = [Math.floor(Math.random()*4), Math.floor(Math.random()*4), Math.floor(Math.random()*4)];
+            playerSequence = [];
+            document.getElementById('minigame-status').innerText = "Смотрите последовательность...";
+            playSequence();
+        }
+
+        function playSequence() {
+            let i = 0;
+            const interval = setInterval(() => {
+                if (i < minigameSequence.length) {
+                    flashNode(minigameSequence[i]);
+                    i++;
+                } else {
+                    clearInterval(interval);
+                    document.getElementById('minigame-status').innerText = "Повторите комбинацию!";
+                }
+            }, 600);
+        }
+
+        function flashNode(idx) {
+            playSound('typewriter');
+            const node = document.getElementById(`node-${idx}`);
+            node.classList.add('brightness-200', 'scale-95');
+            setTimeout(() => {
+                node.classList.remove('brightness-200', 'scale-95');
+            }, 300);
+        }
+
+        function pressNode(idx) {
+            flashNode(idx);
+            playerSequence.push(idx);
+
+            const currentStep = playerSequence.length - 1;
+            if (playerSequence[currentStep] !== minigameSequence[currentStep]) {
+                playSound('error');
+                triggerHaptic();
+                document.getElementById('minigame-status').innerText = "❌ ОШИБКА КОДА! Нажмите старт еще раз.";
+                playerSequence = [];
+                return;
+            }
+
+            if (playerSequence.length === minigameSequence.length) {
+                playSound('win');
+                triggerHaptic();
+                document.getElementById('minigame-status').innerText = "✅ УЗЕЛ УСПЕШНО ВЗЛОМАН!";
+                setTimeout(() => {
+                    document.getElementById('minigame-container').classList.add('hidden');
+                    document.getElementById('tab-content-story').classList.remove('hidden');
+                    renderScene(winTargetScene);
+                }, 1000);
+            }
+        }
+
+        // --- FINAL CERTIFICATE DISPLAY ---
+        function renderCertificate() {
+            document.getElementById('tab-content-story').classList.add('hidden');
+            document.getElementById('nav-tabs').classList.add('hidden');
+            document.getElementById('certificate-container').classList.remove('hidden');
+
+            document.getElementById('cert-user-name').innerText = playerTelegramName;
+            document.getElementById('cert-credits').innerText = state.credits;
+
+            const unlockedCount = state.skills.filter(s => s.unlocked).length;
+            document.getElementById('cert-skills').innerText = unlockedCount;
+
+            const avgRep = Math.round((state.reputation.nix + state.reputation.dex + state.reputation.echo) / 3);
+            document.getElementById('cert-rep').innerText = `${avgRep}%`;
+        }
+
+        function shareResult() {
+            playSound('click');
+            triggerHaptic();
+            const text = `🎮 Я прошел легендарную киберпанк-кампанию 'OMEGA PROTOCOL' в Telegram! Мой статус: Легендарный Хакер. Баланс: ${state.credits} 🪙. Попробуй и ты!`;
+            if (tg && tg.shareUrl) {
+                tg.shareUrl(`https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(text)}`);
+            } else {
+                navigator.clipboard.writeText(text);
+                alert("📋 Достижение скопировано в буфер обмена!");
+            }
+        }
+
+        // --- MATRIX CANVAS BACKGROUND ANIMATION ---
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const chars = '01101001010110101001011001010';
+        const fontSize = 12;
+        const columns = Math.floor(window.innerWidth / fontSize) + 1;
+        const drops = Array(columns).fill(1);
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(5, 7, 15, 0.15)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#00ffcc';
+            ctx.font = `${fontSize}px monospace`;
+
+            for (let i = 0; i < drops.length; i++) {
+                const text = chars.charAt(Math.floor(Math.random() * chars.length));
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+        setInterval(drawMatrix, 40);
+
+        // INITIAL GAME BOOT
+        window.onload = function() {
+            updateStatsUI();
+            renderScene(state.sceneId || 'ch1_start');
+        };
+    </script>
+</body>
+</html>
+```
+
+### Summary of what was created:
+- **`index.html`**: A fully self-contained, responsive Cyberpunk RPG Telegram Web Application featuring dynamic dialogues, decision trees, reputation stats, an interactive node-decipher minigame, persistent save-states, Web Audio FX, sound toggles, and an interactive **Почётная Грамота** shareable certificate at the climax.
